@@ -19,6 +19,8 @@ struct WgpuApp {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     size_changed: bool,
+    // 第二章挑战内容
+    clear_color: wgpu::Color,
 }
 impl WgpuApp {
     async fn new(window: Arc<Window>) -> Self {
@@ -79,6 +81,13 @@ impl WgpuApp {
         };
         surface.configure(&device, &config);
 
+        let clear_color = wgpu::Color {
+            r: 0.1,
+            g: 0.2,
+            b: 0.3,
+            a: 1.0,
+        };
+
         Self {
             window,
             surface,
@@ -87,6 +96,7 @@ impl WgpuApp {
             config,
             size,
             size_changed: false,
+            clear_color,
         }
     }
 
@@ -130,12 +140,7 @@ impl WgpuApp {
                     resolve_target: None,
                     depth_slice: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0,
-                        }),
+                        load: wgpu::LoadOp::Clear(self.clear_color),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -150,11 +155,33 @@ impl WgpuApp {
     // 各种事件处理函数
     // 键盘事件, event: &KeyEvent 是键盘事件的引用
     fn keyboard_input(&mut self, _event: &KeyEvent) -> bool {
-        println!("keyboard_input");
         false
     }
     // 鼠标点击事件, state: ElementState 是鼠标按钮的状态, button: MouseButton 是鼠标按钮
     fn mouse_click(&mut self, _state: ElementState, _button: MouseButton) -> bool {
+        match _button {
+            MouseButton::Left => {
+                if _state == ElementState::Pressed {
+                    self.clear_color = wgpu::Color {
+                        r: 0.2,
+                        g: 0.3,
+                        b: 0.4,
+                        a: 1.0,
+                    };
+                }
+            }
+            MouseButton::Right => {
+                if _state == ElementState::Pressed {
+                    self.clear_color = wgpu::Color {
+                        r: 0.1,
+                        g: 0.2,
+                        b: 0.3,
+                        a: 1.0,
+                    };
+                }
+            }
+            _ => {}
+        }
         false
     }
     // 鼠标滚轮事件, delta: MouseScrollDelta 是鼠标滚轮的滚动量, phase: TouchPhase 是触摸阶段
@@ -234,6 +261,10 @@ impl ApplicationHandler for WgpuAppHandler {
             }
             // 键盘输入事件
             WindowEvent::KeyboardInput { .. } => {}
+            // 鼠标点击事件
+            WindowEvent::MouseInput { state, button, .. } => {
+                app.mouse_click(state, button);
+            }
             // 重绘事件
             WindowEvent::RedrawRequested => {
                 // pre_present_notify 作用：在渲染前调用，用于通知窗口系统渲染即将开始
