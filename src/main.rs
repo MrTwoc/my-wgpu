@@ -11,18 +11,38 @@ use winit::{
 };
 
 struct WgpuApp {
+    // 窗口相关
     #[allow(unused)]
     window: Arc<Window>,
+    // surface: 展示平面
     surface: wgpu::Surface<'static>,
+    // device: GPU设备
     device: wgpu::Device,
+    // queue：GPU队列
     queue: wgpu::Queue,
+    // config：展示平面的配置
     config: wgpu::SurfaceConfiguration,
+    // size：物理尺寸
     size: winit::dpi::PhysicalSize<u32>,
+    // size_changed: 尺寸是否改变
     size_changed: bool,
     // 第二章挑战内容
+    // clear_color: 清除颜色
     clear_color: wgpu::Color,
 }
 impl WgpuApp {
+    /*
+       new()
+       创建一个新的 WgpuApp 实例
+       必须参数：
+       - window: 窗口实例。
+       instance: GPU实例，
+       surface: 展示平面，用于创建渲染目标。
+       adapter: GPU适配器，用于选择和配置 GPU 设备。
+       device: GPU设备，用于执行渲染操作。
+       queue: GPU队列，用于提交命令到 GPU。
+
+    */
     async fn new(window: Arc<Window>) -> Self {
         // instance: GPU实例
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
@@ -47,6 +67,7 @@ impl WgpuApp {
             .unwrap();
 
         // device: GPU设备、queue: GPU队列
+        // 为什么 device 和 queue 要一起声明，因为request_device方法返回的是一个元组，包含了 device 和 queue
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 // 所需的功能
@@ -64,21 +85,34 @@ impl WgpuApp {
             })
             .await
             .unwrap();
-
+        // caps: 展示平面的能力，比如支持的格式、alpha 模式等
         let caps = surface.get_capabilities(&adapter);
+        // 处理窗口尺寸，max(1) 宽高最少1像素
         let mut size = window.inner_size();
         size.width = size.width.max(1);
         size.height = size.height.max(1);
         let config = wgpu::SurfaceConfiguration {
+            // 展示平面的使用方式
+            // RENDER_ATTACHMENT: 表示这个表面将用作渲染目标，可以进行绘制操作
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            // format：指定了 SurfaceTexture 在 GPU 内存上如何被存储
             format: caps.formats[0],
+            // 宽高不能为0，否则会崩溃
             width: size.width,
             height: size.height,
+            // present_mode: 展示模式
+            // FIFO: 表示展示模式为先进先出，即按照绘制顺序展示图像
+            // FIFO：指定了显示设备的刷新率做为渲染的帧速率，这本质上就是垂直同步
             present_mode: wgpu::PresentMode::Fifo,
+            // 透明度模式，使用第一个支持的模式
             alpha_mode: caps.alpha_modes[0],
+            // 视图格式：空向量，因为我们没有使用多视图渲染
             view_formats: vec![],
+            // 期望的最大帧延迟：2帧，
+            // 表示 GPU 可以延迟展示 2 帧图像，以提高渲染性能
             desired_maximum_frame_latency: 2,
         };
+        // 配置展示平面
         surface.configure(&device, &config);
 
         let clear_color = wgpu::Color {
@@ -99,7 +133,6 @@ impl WgpuApp {
             clear_color,
         }
     }
-
     fn set_window_resized(&mut self, new_size: PhysicalSize<u32>) {
         if new_size == self.size {
             return;
